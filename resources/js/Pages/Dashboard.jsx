@@ -1,26 +1,21 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 
 export default function Dashboard() {
-    return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Dashboard
-                </h2>
-            }
-        >
-            <Head title="Dashboard" />
+    const { user, canAccessAdmin } = usePage().props.auth;
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-gray-900">
-                            You're logged in!
-                        </div>
-                    </div>
+    return (
+        <AuthenticatedLayout title="Dashboard">
+            <Head title="Dashboard" />
+            <section className="rounded-xl border border-admin-border bg-admin-card p-6 sm:p-8">
+                <p className="text-xs font-semibold uppercase tracking-widest text-admin-accent">ScoreKeeper</p>
+                <h2 className="mt-3 text-2xl font-semibold">Welcome, {user.name}</h2>
+                <p className="mt-3 text-sm text-admin-muted">You're logged in! Manage your profile and explore your ScoreKeeper workspace.</p>
+                <div className="mt-6 flex flex-wrap gap-4 text-sm">
+                    <Link href={route('profile.edit')} className="rounded-lg border border-admin-border px-4 py-2 hover:bg-admin-topbar focus-visible:outline-2 focus-visible:outline-admin-accent">Your profile</Link>
+                    {canAccessAdmin && <Link href={route('admin.dashboard')} className="rounded-lg bg-admin-accent px-4 py-2 font-medium text-admin-sidebar focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-admin-accent">Open administration</Link>}
                 </div>
-            </div>
+            </section>
         </AuthenticatedLayout>
     );
 }

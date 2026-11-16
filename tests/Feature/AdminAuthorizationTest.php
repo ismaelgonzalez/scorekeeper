@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
@@ -122,5 +124,67 @@ class AdminAuthorizationTest extends TestCase
     {
         $this->assertSame('/admin', route('admin.dashboard', absolute: false));
         $this->get(route('admin.dashboard'))->assertRedirect(route('login'));
+    }
+
+    public function test_admin_navigation_marks_unimplemented_sections_as_unavailable(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $user = User::factory()->create();
+        $user->assignRole('League Admin');
+
+        $this->actingAs($user)->get(route('admin.dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('adminNavigation', 8)
+                ->where('adminNavigation.0.route', 'admin.dashboard')
+                ->where('adminNavigation.1', ['key' => 'leagues', 'label' => 'Leagues', 'route' => null])
+                ->where('adminNavigation.7', ['key' => 'settings', 'label' => 'Settings', 'route' => null])
+                ->where('appVersion', null));
+    }
+
+    public function test_non_admin_users_receive_no_admin_navigation(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page->where('adminNavigation', []));
+    }
+
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function test_available_navigation_is_filtered_by_server_authorization(bool $allowed): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $user = User::factory()->create();
+        $user->assignRole('League Admin');
+        Route::get('/admin/teams', fn (): string => 'Teams')
+            ->middleware(['web', 'auth', 'can:access admin', 'can:view teams'])
+            ->name('admin.teams.index');
+        Route::getRoutes()->refreshNameLookups();
+        Gate::define('view teams', fn (User $user): bool => $allowed);
+
+        $this->actingAs($user)->get(route('admin.dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('adminNavigation', function ($items) use ($allowed): bool {
+                    $teams = collect($items)->firstWhere('key', 'teams');
+
+                    return $allowed ? $teams['route'] === 'admin.teams.index' : $teams === null;
+                }));
+
+        if ($allowed) {
+            $this->get('/admin/teams')->assertOk();
+        } else {
+            $this->get('/admin/teams')->assertForbidden();
+        }
+    }
+
+    public function test_configured_application_version_is_shared_with_the_layout(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $user = User::factory()->create();
+        $user->assignRole('Super Admin');
+        config(['app.version' => '1.2.3']);
+
+        $this->actingAs($user)->get(route('admin.dashboard'))
+            ->assertInertia(fn (Assert $page) => $page->where('appVersion', '1.2.3'));
     }
 }
