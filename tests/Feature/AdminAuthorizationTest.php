@@ -136,7 +136,7 @@ class AdminAuthorizationTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->has('adminNavigation', 8)
                 ->where('adminNavigation.0.route', 'admin.dashboard')
-                ->where('adminNavigation.1', ['key' => 'leagues', 'label' => 'Leagues', 'route' => null])
+                ->where('adminNavigation.1', ['key' => 'leagues', 'label' => 'Leagues', 'route' => 'admin.leagues.index'])
                 ->where('adminNavigation.7', ['key' => 'settings', 'label' => 'Settings', 'route' => null])
                 ->where('appVersion', null));
     }

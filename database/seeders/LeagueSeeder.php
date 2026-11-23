@@ -1,0 +1,25 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\League;
+use App\Models\User;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+
+class LeagueSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        $user = User::first() ?? User::factory()->create();
+
+        League::factory()
+            ->count(10)
+            ->create([
+                'created_by' => $user->id,
+            ]);
+    }
+}

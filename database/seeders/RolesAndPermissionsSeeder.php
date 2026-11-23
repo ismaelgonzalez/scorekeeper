@@ -14,6 +14,10 @@ class RolesAndPermissionsSeeder extends Seeder
         $permissionRegistrar->forgetCachedPermissions();
 
         $permission = Permission::findOrCreate('access admin', 'web');
+        $leaguePermissions = array_map(
+            fn (string $ability): Permission => Permission::findOrCreate($ability, 'web'),
+            ['view leagues', 'create leagues', 'edit leagues', 'delete leagues'],
+        );
 
         $permissionRegistrar->forgetCachedPermissions();
 
@@ -22,6 +26,10 @@ class RolesAndPermissionsSeeder extends Seeder
 
             if (in_array($roleName, ['League Admin', 'Team Manager', 'Scorekeeper'], true)) {
                 $role->givePermissionTo($permission);
+            }
+
+            if ($roleName === 'League Admin') {
+                $role->givePermissionTo($leaguePermissions);
             }
         }
 
